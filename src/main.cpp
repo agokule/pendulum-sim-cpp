@@ -1,8 +1,10 @@
-#include "SDL3/SDL_render.h"
 #include <cmath>
 #include <iostream>
+#include "SDL3/SDL_render.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_sdlrenderer3.h"
 #include <numbers>
 #include <ostream>
 #include <utility>
@@ -13,12 +15,6 @@
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 
-// in meters
-static float length = 10;
-// in radians
-static float theta_start = std::numbers::pi * 0.25;
-// in radians
-static float theta = theta_start;
 // in m/s^2
 static float gravity_acceleration = 9.81;
 
@@ -29,7 +25,7 @@ constexpr int width_height = 800;
 constexpr float string_x = width_height / 2.0f;
 constexpr float string_y = width_height / 5.0f;
 
-static int pixels_per_meter = 30;
+constexpr int pixels_per_meter = 30;
 
 struct Vector {
     float magnitude;
@@ -43,6 +39,9 @@ struct Vector {
         return magnitude * sin(direction);
     }
 };
+
+static Vector v1 {3, 0};
+static Vector v2 {4, std::numbers::pi / 2};
 
 Vector operator*(Vector v, float s) {
     return { v.magnitude * s, v.direction };
@@ -84,6 +83,25 @@ void draw_point(SDL_Renderer *renderer, SDL_Color color, std::pair<float, float>
     if (!success) std::cerr << "Error in SDL_RenderFillRect: " << SDL_GetError();
 }
 
+std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer) {
+    int dx = sx + v.horizontal_component() * pixels_per_meter;
+    int dy = sy - v.vertical_component() * pixels_per_meter;
+
+    SDL_RenderLine(renderer, sx, sy, dx, dy);
+    draw_point(renderer, {0, 255, 0, 0}, {dx, dy});
+
+    return {dx, dy};
+}
+
+void vector_edit(const char* title, Vector& v) {
+    ImGui::Begin(title);
+
+    ImGui::DragFloat("Magnitude (m)", &v.magnitude);
+    ImGui::DragFloat("Angle (radians)", &v.direction);
+
+    ImGui::End();
+}
+
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
@@ -93,6 +111,26 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
     SDL_SetRenderVSync(renderer, 2);
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+
+    // Setup scaling
+    float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.ScaleAllSizes(main_scale);        // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
+    style.FontScaleDpi = main_scale;        // Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+    ImGui_ImplSDLRenderer3_Init(renderer);
 
     return SDL_APP_CONTINUE;
 }
@@ -100,55 +138,42 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
-    if (event->type == SDL_EVENT_KEY_DOWN ||
-        event->type == SDL_EVENT_QUIT) {
+    if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;  /* end the program, reporting success to the OS. */
     }
+
+    ImGui_ImplSDL3_ProcessEvent(event);
+
+    if (ImGui::GetIO().WantCaptureMouse) return SDL_APP_CONTINUE;
+    if (ImGui::GetIO().WantCaptureKeyboard) return SDL_APP_CONTINUE;
+
     return SDL_APP_CONTINUE;
 }
 
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
+    ImGui_ImplSDL3_NewFrame();
+    ImGui_ImplSDLRenderer3_NewFrame();
+
+    ImGui::NewFrame();
+
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    float sx = length * sin(theta);
-    float sy = length * cos(theta);
+    auto [dx, dy] = draw_vector(v1, width_height / 2, width_height / 2, renderer);
+    draw_vector(v2, dx, dy, renderer);
 
-    float x = sx * pixels_per_meter + string_x;
-    float y = sy * pixels_per_meter + string_y;
-    SDL_RenderLine(renderer, string_x, string_y, x, y);
+    SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
+    draw_vector(v1 + v2, width_height / 2, width_height / 2, renderer);
 
-    draw_point(renderer, {255, 0, 0, 255}, {x, y});
+    vector_edit("Edit Vector 1", v1);
+    vector_edit("Edit Vector 2", v2);
 
-    Vector test1 {3, std::numbers::pi * 0};
-    Vector test2 {4, std::numbers::pi * 1.5};
-    Vector sum = test1 + test2;
-    std::cout << sum << '\n';
-
-    // 1 kg mass
-    acceleration.magnitude = 1 * gravity_acceleration * sin(theta);
-    acceleration.direction = theta + std::numbers::pi * 0.5f;
-    std::cout << "acceleration: " << acceleration << '\n';
-
-    Vector displacement = velocity * frame_time + acceleration * frame_time * frame_time * 0.5f;
-    std::cout << "displacement: " << displacement << '\n';
-
-    velocity = velocity + acceleration * frame_time;
-    std::cout << "velocity: " << velocity << "\n";
-
-    std::cout << "Before: " << "sx: " << sx << " m, sy: " << sy << " m\n";
-
-    sx += displacement.horizontal_component();
-    sy += displacement.vertical_component();
-
-    std::cout << "After: " << "sx: " << sx << " m, sy: " << sy << " m\n";
-
-    theta = atan2(sx, sy);
-    std::cout << "theta: " << theta / std::numbers::pi << "󰏿 rad" << "\n\n";
+    ImGui::Render();
+    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
 
     SDL_RenderPresent(renderer);
 
