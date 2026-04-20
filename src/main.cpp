@@ -1,6 +1,8 @@
 #include "SDL3/SDL_render.h"
 #include <cmath>
 #include <iostream>
+#include "imgui.h"
+#include "imgui_stdlib.h"
 #include <numbers>
 #include <ostream>
 #include <utility>

@@ -12,6 +12,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SDL3)
 
+# Fetch Version 1.92.7 of Dear ImGui
+FetchContent_Declare(
+    ImGui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG dac07199cfd761113d966eb8ad739254e10df2fe
+    FIND_PACKAGE_ARGS
+)
+FetchContent_MakeAvailable(ImGui)
+
+message(${imgui_SOURCE_DIR})
+
 set(SDL_TEST_LIBRARY OFF)
 
 # Set output directories
@@ -25,7 +36,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h")
 
-add_executable(PendulumSim ${SOURCES})
+add_executable(PendulumSim ${SOURCES}
+    "${imgui_SOURCE_DIR}/imgui.cpp"
+    "${imgui_SOURCE_DIR}/imgui_draw.cpp"
+    "${imgui_SOURCE_DIR}/imgui_tables.cpp"
+    "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
+    "${imgui_SOURCE_DIR}/imgui_demo.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp"
+    "${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp"
+)
 if(MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++ -static-libgcc")
 endif()
@@ -33,7 +53,10 @@ endif()
 target_compile_definitions(PendulumSim PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 target_include_directories(PendulumSim PRIVATE 
-    src 
+    src
+    ${imgui_SOURCE_DIR}
+    "${imgui_SOURCE_DIR}/misc/cpp/"
+    "${imgui_SOURCE_DIR}/backends/"
 )
 
 target_link_libraries(PendulumSim PRIVATE SDL3::SDL3)
