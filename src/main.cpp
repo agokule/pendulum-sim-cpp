@@ -18,7 +18,10 @@ static SDL_Renderer *renderer = NULL;
 // in m/s^2
 static float gravity_acceleration = 9.81;
 
-static float frame_time = 1.0f / 10;
+// in kg
+static float mass = 1;
+
+static float frame_time = 1.0f / 60;
 
 constexpr int width_height = 800;
 
@@ -39,9 +42,6 @@ struct Vector {
         return magnitude * sin(direction);
     }
 };
-
-static Vector v1 {3, 0};
-static Vector v2 {4, std::numbers::pi / 2};
 
 Vector operator*(Vector v, float s) {
     return { v.magnitude * s, v.direction };
@@ -70,6 +70,7 @@ std::ostream& operator<<(std::ostream& os, const Vector vector) {
 
 static Vector acceleration = {0, 0};
 static Vector velocity = {0, 0};
+static Vector pendulum_string = {10, std::numbers::pi * 1.75};
 
 enum class VectorEndPointType {
     Point,
@@ -174,6 +175,25 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     return SDL_APP_CONTINUE;
 }
 
+void tick_once() {
+    auto [dx, dy] = draw_vector(pendulum_string, string_x, string_y, renderer, VectorEndPointType::Point);
+    acceleration.magnitude = mass * gravity_acceleration * sin(pendulum_string.direction - std::numbers::pi * 1.5);
+    acceleration.direction = pendulum_string.direction - std::numbers::pi * 0.5;
+
+    draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow);
+
+    Vector displacement = velocity * frame_time + acceleration * frame_time * frame_time * 0.5;
+    draw_vector({displacement.magnitude * 10, displacement.direction}, dx, dy, renderer, VectorEndPointType::Arrow);
+
+    pendulum_string = pendulum_string + displacement;
+
+    velocity = velocity + acceleration * frame_time;
+    // draw_vector(velocity, dx, dy, renderer, VectorEndPointType::Arrow);
+
+    SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
+
+}
+
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
@@ -187,14 +207,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    auto [dx, dy] = draw_vector(v1, width_height / 2, width_height / 2, renderer, VectorEndPointType::Point);
-    draw_vector(v2, dx, dy, renderer, VectorEndPointType::Point);
-
-    SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
-    draw_vector(v1 + v2, width_height / 2, width_height / 2, renderer, VectorEndPointType::Arrow);
-
-    vector_edit("Edit Vector 1", v1);
-    vector_edit("Edit Vector 2", v2);
+    tick_once();
+    vector_edit("Edit The Pendulum", pendulum_string);
 
     ImGui::Render();
     ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
