@@ -71,6 +71,12 @@ std::ostream& operator<<(std::ostream& os, const Vector vector) {
 static Vector acceleration = {0, 0};
 static Vector velocity = {0, 0};
 
+enum class VectorEndPointType {
+    Point,
+    Arrow,
+    None
+};
+
 void draw_point(SDL_Renderer *renderer, SDL_Color color, std::pair<float, float> coordinates) {
     SDL_FRect frect {
         coordinates.first - 3.0f,
@@ -83,12 +89,27 @@ void draw_point(SDL_Renderer *renderer, SDL_Color color, std::pair<float, float>
     if (!success) std::cerr << "Error in SDL_RenderFillRect: " << SDL_GetError();
 }
 
-std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer) {
+std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer, VectorEndPointType end_type) {
     int dx = sx + v.horizontal_component() * pixels_per_meter;
     int dy = sy - v.vertical_component() * pixels_per_meter;
 
     SDL_RenderLine(renderer, sx, sy, dx, dy);
-    draw_point(renderer, {0, 255, 0, 0}, {dx, dy});
+
+    switch (end_type) {
+        case VectorEndPointType::Point:
+            draw_point(renderer, {0, 255, 0, 0}, {dx, dy});
+            break;
+        case VectorEndPointType::Arrow: {
+            Vector v1 {-0.2, static_cast<float>(v.direction - std::numbers::pi / 4)};
+            Vector v2 {-0.2, static_cast<float>(v.direction + std::numbers::pi / 4)};
+
+            draw_vector(v1, dx, dy, renderer, VectorEndPointType::None);
+            draw_vector(v2, dx, dy, renderer, VectorEndPointType::None);
+            break;
+        }
+        case VectorEndPointType::None:
+            break;
+    }
 
     return {dx, dy};
 }
@@ -163,11 +184,11 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    auto [dx, dy] = draw_vector(v1, width_height / 2, width_height / 2, renderer);
-    draw_vector(v2, dx, dy, renderer);
+    auto [dx, dy] = draw_vector(v1, width_height / 2, width_height / 2, renderer, VectorEndPointType::Point);
+    draw_vector(v2, dx, dy, renderer, VectorEndPointType::Point);
 
     SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
-    draw_vector(v1 + v2, width_height / 2, width_height / 2, renderer);
+    draw_vector(v1 + v2, width_height / 2, width_height / 2, renderer, VectorEndPointType::Arrow);
 
     vector_edit("Edit Vector 1", v1);
     vector_edit("Edit Vector 2", v2);
