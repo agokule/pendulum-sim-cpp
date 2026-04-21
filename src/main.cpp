@@ -100,8 +100,11 @@ std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer
             draw_point(renderer, {0, 255, 0, 0}, {dx, dy});
             break;
         case VectorEndPointType::Arrow: {
-            Vector v1 {-0.2, static_cast<float>(v.direction - std::numbers::pi / 4)};
-            Vector v2 {-0.2, static_cast<float>(v.direction + std::numbers::pi / 4)};
+            float magnitude = -0.2;
+            if (v.magnitude < 0)
+                magnitude = 0.2;
+            Vector v1 {magnitude, static_cast<float>(v.direction - std::numbers::pi / 4)};
+            Vector v2 {magnitude, static_cast<float>(v.direction + std::numbers::pi / 4)};
 
             draw_vector(v1, dx, dy, renderer, VectorEndPointType::None);
             draw_vector(v2, dx, dy, renderer, VectorEndPointType::None);
