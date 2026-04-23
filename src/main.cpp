@@ -69,6 +69,7 @@ std::ostream& operator<<(std::ostream& os, const Vector vector) {
 }
 
 static Vector acceleration = {0, 0};
+static Vector tension = {0, 0};
 static Vector velocity = {0, 0};
 static Vector pendulum_string = {10, std::numbers::pi * 1.75};
 
@@ -177,9 +178,17 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
 void tick_once() {
     auto [dx, dy] = draw_vector(pendulum_string, string_x, string_y, renderer, VectorEndPointType::Point);
-    acceleration.magnitude = mass * gravity_acceleration * sin(pendulum_string.direction - std::numbers::pi * 1.5);
-    acceleration.direction = pendulum_string.direction - std::numbers::pi * 0.5;
+    acceleration.magnitude = mass * gravity_acceleration;
+    acceleration.direction = std::numbers::pi * 1.5;
 
+                        // mg cos(theta)
+    tension.magnitude = mass * gravity_acceleration * cos(pendulum_string.direction - std::numbers::pi * 1.5)
+                        // mv^2 / r
+                        + mass * velocity.magnitude * velocity.magnitude / pendulum_string.magnitude;
+    tension.direction = pendulum_string.direction - std::numbers::pi;
+
+    // draw_vector(tension, dx, dy, renderer, VectorEndPointType::Arrow);
+    acceleration = acceleration + tension;
     draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow);
 
     Vector displacement = velocity * frame_time + acceleration * frame_time * frame_time * 0.5;
