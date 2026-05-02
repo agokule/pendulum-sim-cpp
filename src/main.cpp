@@ -5,6 +5,7 @@
 #include "imgui_stdlib.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
+#include <limits>
 #include <numbers>
 #include <ostream>
 #include <utility>
@@ -74,8 +75,19 @@ static Vector acceleration = {0, 0};
 static Vector tension = {0, 0};
 static Vector velocity = {0, 0};
 
+static bool show_acceleration = true;
+static bool show_tension = false;
+static bool show_velocity = false;
+static bool show_displacement = true;
+static bool show_weight_force = false;
+
 struct PendulumString: public Vector {
     float starting_magnitude;
+    float starting_direction;
+
+    PendulumString(float magnitude)
+        : Vector{magnitude, std::numbers::pi * 1.75}, starting_magnitude{magnitude}, starting_direction {direction}
+    {}
 
     PendulumString operator+=(Vector v) {
         Vector v2 = Vector{magnitude, direction} + v;
@@ -85,7 +97,7 @@ struct PendulumString: public Vector {
         return *this;
     }
 };
-static PendulumString pendulum_string = {10, std::numbers::pi * 1.75, 10};
+static PendulumString pendulum_string {10.0f};
 
 enum class VectorEndPointType {
     Point,
@@ -133,11 +145,49 @@ std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer
     return {dx, dy};
 }
 
-void vector_edit(const char* title, Vector& v) {
+void reset() {
+    pendulum_string.direction = pendulum_string.starting_direction;
+    pendulum_string.magnitude = pendulum_string.starting_magnitude;
+    velocity = {0, 0};
+    acceleration = {0, 0};
+    tension = {0, 0};
+}
+
+void pendulum_edit(const char* title, PendulumString& v) {
     ImGui::Begin(title);
 
-    ImGui::DragFloat("Magnitude (m)", &v.magnitude);
-    ImGui::DragFloat("Angle (radians)", &v.direction);
+    ImGui::Text("Current length: %.3f meters", v.magnitude);
+    ImGui::Text("Current angle: %.3f radians", v.direction);
+
+    ImGui::PushItemWidth(60.0f);
+
+    bool changed = false;
+    changed |= ImGui::DragFloat("Length (meters)", &v.starting_magnitude, 0.3, 0.4, 100);
+    changed |= ImGui::DragFloat("Angle (radians)", &v.starting_direction, 0.1, std::numbers::pi, 2 * std::numbers::pi);
+
+    // mass actually doesn't change anything, so we are ignoring it for changed bool
+    ImGui::DragFloat("Mass of Bob (kg)", &mass, 0.4, 0.001, std::numeric_limits<float>::infinity());
+
+    ImGui::PopItemWidth();
+
+    if (changed)
+        reset();
+
+    ImGui::Checkbox("Show resultant acceleration vector", &show_acceleration);
+
+    ImGui::Checkbox("Show tension force vector**", &show_tension);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("tension and weight are scaled 0.1x for better visibility");
+
+    ImGui::Checkbox("Show weight force vector**", &show_weight_force);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("tension and weight are scaled 0.1x for better visibility");
+
+    ImGui::Checkbox("Show velocity vector", &show_velocity);
+
+    ImGui::Checkbox("Show displacement vector**", &show_displacement);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("displacement is scaled 100x for better visibility");
 
     ImGui::End();
 }
@@ -194,7 +244,8 @@ void tick_once(float frame_time) {
     auto [dx, dy] = draw_vector(pendulum_string, string_x, string_y, renderer, VectorEndPointType::Point);
     acceleration.magnitude = gravity_acceleration;
     acceleration.direction = std::numbers::pi * 1.5;
-    draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow);
+    if (show_weight_force)
+        draw_vector(acceleration * mass / 10, dx, dy, renderer, VectorEndPointType::Arrow);
 
                         // mg cos(theta)
     tension.magnitude = mass * gravity_acceleration * cos(pendulum_string.direction - std::numbers::pi * 1.5)
@@ -202,17 +253,21 @@ void tick_once(float frame_time) {
                         + mass * velocity.magnitude * velocity.magnitude / pendulum_string.starting_magnitude;
     tension.direction = pendulum_string.direction - std::numbers::pi;
 
-    draw_vector(tension, dx, dy, renderer, VectorEndPointType::Arrow);
+    if (show_tension)
+        draw_vector(tension / 10, dx, dy, renderer, VectorEndPointType::Arrow);
     acceleration = acceleration + (tension / mass);
-    draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow);
+    if (show_acceleration)
+        draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow);
 
     Vector displacement = velocity * frame_time + acceleration * frame_time * frame_time * 0.5;
-    draw_vector({displacement.magnitude * 10, displacement.direction}, dx, dy, renderer, VectorEndPointType::Arrow);
+    if (show_displacement)
+        draw_vector(displacement * 100, dx, dy, renderer, VectorEndPointType::Arrow);
 
     pendulum_string += displacement;
 
     velocity = velocity + acceleration * frame_time;
-    // draw_vector(velocity, dx, dy, renderer, VectorEndPointType::Arrow);
+    if (show_velocity)
+        draw_vector(velocity, dx, dy, renderer, VectorEndPointType::Arrow);
 
     SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
 
@@ -232,7 +287,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
     tick_once(1.0f / 10000);
-    vector_edit("Edit The Pendulum", pendulum_string);
+    pendulum_edit("Edit The Pendulum", pendulum_string);
 
     ImGui::Render();
     ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
