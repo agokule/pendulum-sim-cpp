@@ -163,7 +163,7 @@ void pendulum_edit(const char* title, PendulumString& v) {
 
     bool changed = false;
     changed |= ImGui::DragFloat("Length (meters)", &v.starting_magnitude, 0.3, 0.4, 100);
-    changed |= ImGui::DragFloat("Angle (radians)", &v.starting_direction, 0.1, std::numbers::pi, 2 * std::numbers::pi);
+    changed |= ImGui::DragFloat("Angle (radians)", &v.starting_direction, 0.1, std::numbers::pi * 1.01, 1.99 * std::numbers::pi);
 
     // mass actually doesn't change anything, so we are ignoring it for changed bool
     ImGui::DragFloat("Mass of Bob (kg)", &mass, 0.4, 0.001, std::numeric_limits<float>::infinity());
