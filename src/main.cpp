@@ -21,8 +21,6 @@ static float gravity_acceleration = 9.81;
 // in kg
 static float mass = 1;
 
-static float frame_time = 1.0f / 60;
-
 constexpr int width_height = 800;
 
 constexpr float string_x = width_height / 2.0f;
@@ -45,6 +43,10 @@ struct Vector {
 
 Vector operator*(Vector v, float s) {
     return { v.magnitude * s, v.direction };
+}
+
+Vector operator/(Vector v, float s) {
+    return { v.magnitude / s, v.direction };
 }
 
 Vector operator+(Vector v1, Vector v2) {
@@ -71,7 +73,19 @@ std::ostream& operator<<(std::ostream& os, const Vector vector) {
 static Vector acceleration = {0, 0};
 static Vector tension = {0, 0};
 static Vector velocity = {0, 0};
-static Vector pendulum_string = {10, std::numbers::pi * 1.75};
+
+struct PendulumString: public Vector {
+    float starting_magnitude;
+
+    PendulumString operator+=(Vector v) {
+        Vector v2 = Vector{magnitude, direction} + v;
+        magnitude = v2.magnitude;
+        direction = v2.direction;
+
+        return *this;
+    }
+};
+static PendulumString pendulum_string = {10, std::numbers::pi * 1.75, 10};
 
 enum class VectorEndPointType {
     Point,
@@ -136,7 +150,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
         SDL_Log("Couldn't create window and renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    SDL_SetRenderVSync(renderer, 2);
+    // SDL_SetRenderVSync(renderer, 2);
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -176,25 +190,26 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     return SDL_APP_CONTINUE;
 }
 
-void tick_once() {
+void tick_once(float frame_time) {
     auto [dx, dy] = draw_vector(pendulum_string, string_x, string_y, renderer, VectorEndPointType::Point);
-    acceleration.magnitude = mass * gravity_acceleration;
+    acceleration.magnitude = gravity_acceleration;
     acceleration.direction = std::numbers::pi * 1.5;
+    draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow);
 
                         // mg cos(theta)
     tension.magnitude = mass * gravity_acceleration * cos(pendulum_string.direction - std::numbers::pi * 1.5)
                         // mv^2 / r
-                        + mass * velocity.magnitude * velocity.magnitude / pendulum_string.magnitude;
+                        + mass * velocity.magnitude * velocity.magnitude / pendulum_string.starting_magnitude;
     tension.direction = pendulum_string.direction - std::numbers::pi;
 
-    // draw_vector(tension, dx, dy, renderer, VectorEndPointType::Arrow);
-    acceleration = acceleration + tension;
+    draw_vector(tension, dx, dy, renderer, VectorEndPointType::Arrow);
+    acceleration = acceleration + (tension / mass);
     draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow);
 
     Vector displacement = velocity * frame_time + acceleration * frame_time * frame_time * 0.5;
     draw_vector({displacement.magnitude * 10, displacement.direction}, dx, dy, renderer, VectorEndPointType::Arrow);
 
-    pendulum_string = pendulum_string + displacement;
+    pendulum_string += displacement;
 
     velocity = velocity + acceleration * frame_time;
     // draw_vector(velocity, dx, dy, renderer, VectorEndPointType::Arrow);
@@ -216,7 +231,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    tick_once();
+    tick_once(1.0f / 10000);
     vector_edit("Edit The Pendulum", pendulum_string);
 
     ImGui::Render();
