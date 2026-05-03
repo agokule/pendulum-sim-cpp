@@ -72,7 +72,7 @@ std::ostream& operator<<(std::ostream& os, const Vector vector) {
 }
 
 static Vector acceleration = {0, 0};
-static Vector tension = {0, 0};
+static Vector tension_force = {0, 0};
 static Vector velocity = {0, 0};
 
 static bool show_acceleration = true;
@@ -150,7 +150,7 @@ void reset() {
     pendulum_string.magnitude = pendulum_string.starting_magnitude;
     velocity = {0, 0};
     acceleration = {0, 0};
-    tension = {0, 0};
+    tension_force = {0, 0};
 }
 
 void pendulum_edit(const char* title, PendulumString& v) {
@@ -248,14 +248,14 @@ void tick_once(float frame_time) {
         draw_vector(acceleration * mass / 10, dx, dy, renderer, VectorEndPointType::Arrow);
 
                         // mg cos(theta)
-    tension.magnitude = mass * gravity_acceleration * cos(pendulum_string.direction - std::numbers::pi * 1.5)
+    tension_force.magnitude = mass * gravity_acceleration * cos(pendulum_string.direction - std::numbers::pi * 1.5)
                         // mv^2 / r
                         + mass * velocity.magnitude * velocity.magnitude / pendulum_string.starting_magnitude;
-    tension.direction = pendulum_string.direction - std::numbers::pi;
+    tension_force.direction = pendulum_string.direction - std::numbers::pi;
 
     if (show_tension)
-        draw_vector(tension / 10, dx, dy, renderer, VectorEndPointType::Arrow);
-    acceleration = acceleration + (tension / mass);
+        draw_vector(tension_force / 10, dx, dy, renderer, VectorEndPointType::Arrow);
+    acceleration = acceleration + (tension_force / mass);
     if (show_acceleration)
         draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow);
 
