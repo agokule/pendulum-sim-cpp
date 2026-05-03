@@ -272,7 +272,7 @@ void tick_once(float frame_time) {
 
     Vector displacement = velocity * frame_time + acceleration * frame_time * frame_time * 0.5;
     if (show_displacement)
-        draw_vector(displacement * 100, dx, dy, renderer, VectorEndPointType::Arrow, std::format("Displacement ({:.2f} m)", displacement.magnitude).c_str());
+        draw_vector(displacement * 100, dx, dy, renderer, VectorEndPointType::Arrow, std::format("Displacement ({:.1e} m)", displacement.magnitude).c_str());
 
     pendulum_string += displacement;
 
