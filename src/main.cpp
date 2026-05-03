@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <format>
 #include "SDL3/SDL_render.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
@@ -22,7 +23,7 @@ static float gravity_acceleration = 9.81;
 // in kg
 static float mass = 1;
 
-constexpr int width_height = 800;
+constexpr int width_height = 900;
 
 constexpr float string_x = width_height / 2.0f;
 constexpr float string_y = width_height / 5.0f;
@@ -80,6 +81,7 @@ static bool show_tension = false;
 static bool show_velocity = false;
 static bool show_displacement = true;
 static bool show_weight_force = false;
+static bool show_vector_labels = true;
 
 struct PendulumString: public Vector {
     float starting_magnitude;
@@ -142,7 +144,7 @@ std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer
             break;
     }
 
-    if (label) {
+    if (label && show_vector_labels) {
         ImGui::PushFont(nullptr, 11.0f);
         ImGui::GetForegroundDrawList()->AddText(ImVec2(dx + 5, dy + 5), IM_COL32(255, 255, 255, 255), label);
         ImGui::PopFont();
@@ -178,6 +180,8 @@ void pendulum_edit(const char* title, PendulumString& v) {
 
     if (changed)
         reset();
+
+    ImGui::Checkbox("Show vector labels", &show_vector_labels);
 
     ImGui::Checkbox("Show resultant acceleration vector", &show_acceleration);
 
@@ -251,7 +255,7 @@ void tick_once(float frame_time) {
     acceleration.magnitude = gravity_acceleration;
     acceleration.direction = std::numbers::pi * 1.5;
     if (show_weight_force)
-        draw_vector(acceleration * mass / 10, dx, dy, renderer, VectorEndPointType::Arrow);
+        draw_vector(acceleration * mass / 10, dx, dy, renderer, VectorEndPointType::Arrow, std::format("Weight Force ({:.2f} N)", (acceleration * mass).magnitude).c_str());
 
                         // mg cos(theta)
     tension_force.magnitude = mass * gravity_acceleration * cos(pendulum_string.direction - std::numbers::pi * 1.5)
@@ -260,20 +264,20 @@ void tick_once(float frame_time) {
     tension_force.direction = pendulum_string.direction - std::numbers::pi;
 
     if (show_tension)
-        draw_vector(tension_force / 10, dx, dy, renderer, VectorEndPointType::Arrow);
+        draw_vector(tension_force / 10, dx, dy, renderer, VectorEndPointType::Arrow, std::format("Tension Force ({:.2f} N)", tension_force.magnitude).c_str());
     acceleration = acceleration + (tension_force / mass);
     if (show_acceleration)
-        draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow);
+        draw_vector(acceleration, dx, dy, renderer, VectorEndPointType::Arrow, std::format("Acceleration ({:.2f} m/s^2)", acceleration.magnitude).c_str());
 
     Vector displacement = velocity * frame_time + acceleration * frame_time * frame_time * 0.5;
     if (show_displacement)
-        draw_vector(displacement * 100, dx, dy, renderer, VectorEndPointType::Arrow);
+        draw_vector(displacement * 100, dx, dy, renderer, VectorEndPointType::Arrow, std::format("Displacement ({:.2f} m)", displacement.magnitude).c_str());
 
     pendulum_string += displacement;
 
     velocity = velocity + acceleration * frame_time;
     if (show_velocity)
-        draw_vector(velocity, dx, dy, renderer, VectorEndPointType::Arrow);
+        draw_vector(velocity, dx, dy, renderer, VectorEndPointType::Arrow, std::format("Velocity ({:.2f} m/s)", velocity.magnitude).c_str());
 
     SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
 
