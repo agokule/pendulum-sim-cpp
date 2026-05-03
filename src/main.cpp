@@ -82,6 +82,7 @@ static bool show_velocity = false;
 static bool show_displacement = true;
 static bool show_weight_force = false;
 static bool show_vector_labels = true;
+static bool paused = false;
 
 struct PendulumString: public Vector {
     float starting_magnitude;
@@ -296,8 +297,22 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    tick_once(1.0f / 10000);
+    float time = 1.0f / 10'000;
+    if (paused)
+        time = 0;
+    tick_once(time);
     pendulum_edit("Edit The Pendulum", pendulum_string);
+
+    // Bottom-centered controls
+    ImGui::SetNextWindowPos(ImVec2(width_height / 2.0f, width_height - 20.0f), ImGuiCond_Always, ImVec2(0.5f, 1.0f));
+    ImGui::SetNextWindowSize(ImVec2(0, 0)); // auto-size
+    ImGui::Begin("##controls", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    if (ImGui::Button(paused ? "Play" : "Pause"))
+        paused = !paused;
+    ImGui::SameLine();
+    if (ImGui::Button("Reset"))
+        reset();
+    ImGui::End();
 
     ImGui::Render();
     ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
