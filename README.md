@@ -10,3 +10,21 @@ It is very customizable and kind of addicting. Enjoy!
 ## Video Demo
 
 https://github.com/user-attachments/assets/01366a44-77b9-47ca-a463-3bb786cd1c7c
+
+## Building Locally
+
+Option 1: Using `just`
+
+```bash
+just build
+# append "release" to build with release mode
+```
+
+Option 2: Using `cmake`
+
+```bash
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -S . -B build
+cmake --build build --config Release
+# replace "Release" with "Debug" to build with debug mode
+```
+
