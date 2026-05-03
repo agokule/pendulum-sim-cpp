@@ -142,8 +142,11 @@ std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer
             break;
     }
 
-    if (label)
+    if (label) {
+        ImGui::PushFont(nullptr, 11.0f);
         ImGui::GetForegroundDrawList()->AddText(ImVec2(dx + 5, dy + 5), IM_COL32(255, 255, 255, 255), label);
+        ImGui::PopFont();
+    }
 
     return {dx, dy};
 }
