@@ -117,7 +117,7 @@ void draw_point(SDL_Renderer *renderer, SDL_Color color, std::pair<float, float>
     if (!success) std::cerr << "Error in SDL_RenderFillRect: " << SDL_GetError();
 }
 
-std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer, VectorEndPointType end_type) {
+std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer, VectorEndPointType end_type, const char* label = nullptr) {
     int dx = sx + v.horizontal_component() * pixels_per_meter;
     int dy = sy - v.vertical_component() * pixels_per_meter;
 
@@ -141,6 +141,9 @@ std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer
         case VectorEndPointType::None:
             break;
     }
+
+    if (label)
+        ImGui::GetForegroundDrawList()->AddText(ImVec2(dx + 5, dy + 5), IM_COL32(255, 255, 255, 255), label);
 
     return {dx, dy};
 }
