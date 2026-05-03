@@ -19,6 +19,7 @@ Option 1: Using `just`
 just build
 # append "release" to build with release mode
 ```
+You need to install [just](https://github.com/casey/just) for this to work.
 
 Option 2: Using `cmake`
 
