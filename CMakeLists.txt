@@ -70,3 +70,13 @@ if(WIN32)
     )
 endif()
 
+# on Web targets, we need CMake to generate a HTML webpage. 
+if(EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html" CACHE INTERNAL "")
+    set(EMMAKE_CXX_CFLAGS "${EMMAKE_CXX_CFLAGS}")
+    if (DISTRIBUTION_MODE)
+        set(EMMAKE_CXX_CFLAGS "${EMMAKE_CXX_CFLAGS} -03")
+    endif()
+    set_target_properties(PendulumSim PROPERTIES LINK_FLAGS "${EMMAKE_CXX_CFLAGS}")
+endif()
+
