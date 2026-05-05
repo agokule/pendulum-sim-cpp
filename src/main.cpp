@@ -284,6 +284,8 @@ void tick_once(float frame_time) {
 
 }
 
+static auto last_time = SDL_GetTicksNS();
+
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
@@ -297,7 +299,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    float time = 1.0f / 10'000;
+    float time = (SDL_GetTicksNS() - last_time) / 10e9;
+    last_time = SDL_GetTicksNS();
     if (paused)
         time = 0;
     tick_once(time);
