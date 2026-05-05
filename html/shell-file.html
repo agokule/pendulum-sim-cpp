@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendulum Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Spectral:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:        #0d0d0f;
+        --surface:   #13131a;
+        --border:    #2a2a38;
+        --amber:     #e8a830;
+        --amber-dim: #7a5618;
+        --text:      #c8c8d8;
+        --text-dim:  #5a5a70;
+        --mono:      'DM Mono', monospace;
+        --serif:     'Spectral', serif;
+      }
+
+      html, body {
+        width: 100%; height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--mono);
+      }
+
+      /* subtle dot-grid background */
+      body::before {
+        content: '';
+        position: fixed; inset: 0;
+        background-image: radial-gradient(circle, #2a2a3a 1px, transparent 1px);
+        background-size: 28px 28px;
+        opacity: 0.35;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      #layout {
+        position: relative; z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100vw; height: 100vh;
+        gap: 16px;
+      }
+
+      /* ── Header ── */
+      #header {
+        display: flex;
+        align-items: baseline;
+        gap: 18px;
+        letter-spacing: 0.08em;
+      }
+
+      #header h1 {
+        font-family: var(--serif);
+        font-weight: 300;
+        font-size: 1.1rem;
+        color: var(--text);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      #header .sep { color: var(--amber-dim); font-size: 0.7rem; }
+
+      #status-label {
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      #status-dot {
+        display: inline-block;
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--amber);
+        margin-right: 6px;
+        box-shadow: 0 0 6px var(--amber);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.3; }
+      }
+
+      /* ── Canvas frame ── */
+      #canvas-wrap {
+        position: relative;
+        width: 900px; height: 900px;
+        border: 1px solid var(--border);
+        box-shadow:
+          0 0 0 1px #0d0d0f,
+          0 0 40px rgba(0,0,0,0.7),
+          inset 0 0 60px rgba(0,0,0,0.4);
+        background: #000;
+        overflow: hidden;
+      }
+
+      /* corner tick marks */
+      #canvas-wrap::before,
+      #canvas-wrap::after {
+        content: '';
+        position: absolute;
+        width: 14px; height: 14px;
+        border-color: var(--amber-dim);
+        border-style: solid;
+        z-index: 10;
+        pointer-events: none;
+      }
+      #canvas-wrap::before { top: 6px; left: 6px;  border-width: 1px 0 0 1px; }
+      #canvas-wrap::after  { bottom: 6px; right: 6px; border-width: 0 1px 1px 0; }
+
+      canvas {
+        display: block;
+        width: 900px !important;
+        height: 900px !important;
+      }
+
+      /* loading overlay */
+      #loading-overlay {
+        position: absolute; inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface);
+        gap: 20px;
+        z-index: 20;
+        transition: opacity 0.5s ease;
+      }
+      #loading-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .spinner-ring {
+        width: 40px; height: 40px;
+        border: 1px solid var(--border);
+        border-top-color: var(--amber);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      #loading-text {
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      #progress-bar-wrap {
+        width: 160px;
+        height: 1px;
+        background: var(--border);
+      }
+      #progress-bar-fill {
+        height: 100%;
+        background: var(--amber);
+        width: 0%;
+        transition: width 0.2s ease;
+      }
+
+      /* ── Footer ── */
+      #footer {
+        display: flex;
+        gap: 28px;
+        font-size: 0.6rem;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="layout">
+
+      <div id="header">
+        <h1>Pendulum Simulator</h1>
+        <span class="sep">◆</span>
+        <span id="status-label">
+          <span id="status-dot"></span>
+          <span id="status-text">Initialising</span>
+        </span>
+      </div>
+
+      <div id="canvas-wrap">
+        <div id="loading-overlay">
+          <div class="spinner-ring"></div>
+          <div id="progress-bar-wrap"><div id="progress-bar-fill"></div></div>
+          <div id="loading-text" id="loading-detail">Loading</div>
+        </div>
+        <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+      </div>
+
+      <div id="footer">
+        <span>WebGL · SDL3 · ImGui</span>
+        <span>·</span>
+        <span>Use the panel to adjust parameters</span>
+      </div>
+
+    </div>
+
+    <script>
+      // Prevent all scrolling
+      document.addEventListener('wheel',     e => e.preventDefault(), { passive: false });
+      document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+      document.addEventListener('keydown',   e => {
+        if (['ArrowUp','ArrowDown','Space',' '].includes(e.key)) e.preventDefault();
+      });
+
+      const statusText   = document.getElementById('status-text');
+      const loadingOverlay = document.getElementById('loading-overlay');
+      const progressFill = document.getElementById('progress-bar-fill');
+
+      var setStatus = (text) => {
+        if (!setStatus.last) setStatus.last = { time: Date.now(), text: '' };
+        if (text === setStatus.last.text) return;
+        var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+        var now = Date.now();
+        if (m && now - setStatus.last.time < 30) return;
+        setStatus.last.time = now;
+        setStatus.last.text = text;
+
+        if (m) {
+          statusText.textContent = m[1].trim();
+          var pct = (parseInt(m[2]) / parseInt(m[4])) * 100;
+          progressFill.style.width = pct + '%';
+        } else {
+          statusText.textContent = text || 'Ready';
+          if (!text) {
+            // done loading
+            loadingOverlay.classList.add('hidden');
+            setTimeout(() => loadingOverlay.remove(), 600);
+          }
+        }
+      };
+
+      var Module = {
+        canvas: document.getElementById('canvas'),
+        setStatus: setStatus,
+        totalDependencies: 0,
+        monitorRunDependencies(left) {
+          this.totalDependencies = Math.max(this.totalDependencies, left);
+          setStatus(left
+            ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')'
+            : '');
+        },
+        print(...args)   { console.log(...args); },
+        printErr(...args){ console.error(...args); },
+      };
+
+      setStatus('Downloading...');
+
+      window.onerror = () => {
+        setStatus('Error — see console');
+      };
+
+      document.getElementById('canvas').addEventListener('webglcontextlost', (e) => {
+        alert('WebGL context lost. Please reload the page.');
+        e.preventDefault();
+      }, false);
+    </script>
+    {{{ SCRIPT }}}
+  </body>
+</html>
