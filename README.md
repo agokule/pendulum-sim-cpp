@@ -2,7 +2,9 @@
 
 So my IB Physics Exam is coming up soon and I need to study for it...
 
-But I really wanted to do some coding since it's been some time. So I made this simulation of a pendulum!
+But I really wanted to do some coding since it's been some time. So I made this
+simulation of a pendulum, so that I can get a little bit of Physics and Coding
+in!
 
 It uses 2D vector analysis to simulate a pendulum the exact way it would behave in real life!
 It is very customizable and kind of addicting. Enjoy!
