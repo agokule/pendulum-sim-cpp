@@ -128,7 +128,7 @@ std::pair<int, int> draw_vector(Vector v, int sx, int sy, SDL_Renderer* renderer
 
     switch (end_type) {
         case VectorEndPointType::Point:
-            draw_point(renderer, {0, 255, 0, 0}, {dx, dy});
+            draw_point(renderer, {0, 255, 0, 255}, {dx, dy});
             break;
         case VectorEndPointType::Arrow: {
             float magnitude = -0.2;
