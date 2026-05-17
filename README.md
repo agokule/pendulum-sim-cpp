@@ -13,6 +13,11 @@ It is very customizable and kind of addicting. Enjoy!
 
 https://github.com/user-attachments/assets/01366a44-77b9-47ca-a463-3bb786cd1c7c
 
+## Online Website
+
+There is a version of this hosted 
+[here](https://agokule.github.io/pendulum-sim-cpp/) on GitHub pages.
+
 ## Building Locally
 
 Option 1: Using `just`

@@ -72,7 +72,10 @@ endif()
 
 # on Web targets, we need CMake to generate a HTML webpage. 
 if(EMSCRIPTEN)
+    # makes the output name index.html
     set(CMAKE_EXECUTABLE_SUFFIX ".html" CACHE INTERNAL "")
+    set_target_properties(PendulumSim PROPERTIES OUTPUT_NAME "index")
+
     message("${CMAKE_SOURCE_DIR}html/shell-file.html")
     set(EMMAKE_CXX_CFLAGS "${EMMAKE_CXX_CFLAGS} --shell-file ${CMAKE_SOURCE_DIR}/html/shell-file.html")
     if (DISTRIBUTION_MODE)
