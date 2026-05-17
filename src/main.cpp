@@ -299,7 +299,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    float time = (SDL_GetTicksNS() - last_time) / 10e9;
+    float time = (SDL_GetTicksNS() - last_time) / 1e9;
     last_time = SDL_GetTicksNS();
     if (paused)
         time = 0;
