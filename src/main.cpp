@@ -291,6 +291,7 @@ static auto last_time = std::chrono::steady_clock::now();
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
+    using namespace std::chrono;
     ImGui_ImplSDL3_NewFrame();
     ImGui_ImplSDLRenderer3_NewFrame();
 
@@ -301,8 +302,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    float time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - last_time).count() / 1e9;
-    last_time = std::chrono::steady_clock::now();
+    float time = duration_cast<nanoseconds>(steady_clock::now() - last_time).count() / 1e9;
+    last_time = steady_clock::now();
     if (paused)
         time = 0;
     std::cout << time << '\n';
