@@ -1,4 +1,5 @@
 #include <cmath>
+#include <chrono>
 #include <iostream>
 #include <format>
 #include "SDL3/SDL_render.h"
@@ -9,6 +10,7 @@
 #include <limits>
 #include <numbers>
 #include <ostream>
+#include <thread>
 #include <utility>
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
@@ -284,7 +286,7 @@ void tick_once(float frame_time) {
 
 }
 
-static auto last_time = SDL_GetTicksNS();
+static auto last_time = std::chrono::steady_clock::now();
 
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
@@ -299,10 +301,11 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    float time = (SDL_GetTicksNS() - last_time) / 1e9;
-    last_time = SDL_GetTicksNS();
+    float time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - last_time).count() / 1e9;
+    last_time = std::chrono::steady_clock::now();
     if (paused)
         time = 0;
+    std::cout << time << '\n';
     tick_once(time);
     pendulum_edit("Edit The Pendulum", pendulum_string);
 
