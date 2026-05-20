@@ -1,5 +1,6 @@
 #include <cmath>
 #include <chrono>
+#include <cstdint>
 #include <iostream>
 #include <format>
 #include "SDL3/SDL_render.h"
@@ -21,6 +22,10 @@ static SDL_Renderer *renderer = NULL;
 
 // in m/s^2
 static float gravity_acceleration = 9.81;
+
+static float speed = 1;
+
+constexpr int fps = 120;
 
 // in kg
 static float mass = 1;
@@ -174,10 +179,12 @@ void pendulum_edit(const char* title, PendulumString& v) {
 
     bool changed = false;
     changed |= ImGui::DragFloat("Length (meters)", &v.starting_magnitude, 0.3, 0.4, 100);
-    changed |= ImGui::DragFloat("Angle (radians)", &v.starting_direction, 0.1, std::numbers::pi * 1.01, 1.99 * std::numbers::pi);
+    changed |= ImGui::DragFloat("Angle (radians)", &v.starting_direction, 0.1, std::numbers::pi * 1.1, 1.9 * std::numbers::pi);
 
     // mass actually doesn't change anything, so we are ignoring it for changed bool
     ImGui::DragFloat("Mass of Bob (kg)", &mass, 0.4, 0.001, std::numeric_limits<float>::infinity());
+
+    ImGui::DragFloat("Speed", &speed, 0.2f, 0.001f, 5);
 
     ImGui::PopItemWidth();
 
@@ -302,12 +309,12 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    float time = duration_cast<nanoseconds>(steady_clock::now() - last_time).count() / 1e9;
+    auto duration = duration_cast<nanoseconds>(steady_clock::now() - last_time);
+    float time_seconds = duration.count() / 1e9;
+    std::this_thread::sleep_for(std::chrono::duration<float>(1.0f / fps) - duration);
     last_time = steady_clock::now();
-    if (paused)
-        time = 0;
-    std::cout << time << '\n';
-    tick_once(time);
+
+    tick_once((paused ? 0 : 1.0f / fps) * speed);
     pendulum_edit("Edit The Pendulum", pendulum_string);
 
     // Bottom-centered controls
